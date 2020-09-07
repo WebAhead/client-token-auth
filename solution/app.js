@@ -1,33 +1,60 @@
 import h from "./create-element.js";
+import { login, getUser } from "./api.js";
 
-let state = {};
+// El is short for  Element: i.e. these variables refer to DOM nodes
+const loginFormEl = LoginForm();
+const welcomeEl = h("main", {});
+const logoutEl = LogoutButton();
 
-function setState(newState) {
-  Object.assign(state, newState);
-  render();
+// render the initial UI to the page
+const app = document.querySelector("#app");
+app.append(loginFormEl);
+
+// if we have a stored token that means the user is logged in
+// fetch that user from the server and show a welcome message
+const token = window.localStorage.getItem("dogs-token");
+if (token) {
+  getUser(token).then((user) => {
+    const messageEl = h("span", {}, `Hello ${user.name}`);
+    welcomeEl.innerHTML = "";
+    welcomeEl.append(messageEl, logoutEl);
+    loginFormEl.replaceWith(welcomeEl);
+  });
 }
 
-function Page() {
-  return h("div", { className: "page-layout" }, Header(), DogsList());
-}
-
-function Header() {
-  return h("header", {}, h("span", { className: "logo" }, "🐶"), LoginForm());
-}
-
-const API = "https://dogs-rest.herokuapp.com/v1/";
-
+// creates the form to log in:
+// <form><input type="email"><input type="password"><button>Log in</button>
 function LoginForm() {
   return h(
     "form",
-    {},
+    {
+      id: "loginForm",
+      onsubmit: (event) => {
+        event.preventDefault();
+        const email = event.target.elements.email.value;
+        const password = event.target.elements.password.value;
+        login(email, password).then((user) => {
+          // save the access token in localStorage so the user stays logged in
+          window.localStorage.setItem("dogs-token", user.access_token);
+
+          // show the welcome message instead of the form
+          const messageEl = h("span", {}, `Hello ${user.name}`);
+          welcomeEl.innerHTML = "";
+          welcomeEl.append(messageEl, logoutEl);
+          loginFormEl.replaceWith(welcomeEl);
+        });
+      },
+    },
+    h("label", { for: "email" }, "Email"),
     h("input", {
+      id: "email",
       type: "email",
       name: "email",
       placeholder: "Email",
-      "aria-label": "Email",
     }),
+    h("label", { for: "password" }, "Password"),
     h("input", {
+      id: "password",
       type: "password",
       name: "password",
       placeholder: "Password",
@@ -37,38 +64,15 @@ function LoginForm() {
   );
 }
 
-// fetch the dogs array from the API server
-// then update the state object so the render() function re-runs
-// DogsList will now have access to dogs and will show them
-fetch(API + "dogs")
-  .then((res) => res.json())
-  .then((dogs) => setState({ dogs }));
-
-function DogsList() {
-  let dogItems = [];
-  if (!state.dogs) {
-    // when we first render there are no dogs
-    dogItems.push(h("li", {}, "No dogs found"));
-  } else {
-    // once the fetch has run there will be dogs
-    for (let dog of state.dogs) {
-      const dogItem = h(
-        "li",
-        {},
-        h("h3", {}, dog.name)
-        // h("img", { src: dog.image, alt: "", width: 300, height: 300 })
-      );
-      dogItems.push(dogItem);
-    }
-  }
-  return h("ul", {}, ...dogItems);
+function LogoutButton() {
+  return h(
+    "button",
+    {
+      onclick: () => {
+        window.localStorage.removeItem("dogs-token");
+        welcomeEl.replaceWith(loginFormEl);
+      },
+    },
+    "Log out"
+  );
 }
-
-const app = document.querySelector("#app");
-
-function render() {
-  app.innerHTML = "";
-  app.append(Page());
-}
-
-render();
