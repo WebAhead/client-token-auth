@@ -22,9 +22,9 @@ Open http://localhost:8080 in your browser and you should see a form for logging
 
 To log in we must send a `POST` request containing the user's email and password to our API server's login endpoint. The URL is `https://dogs-rest.herokuapp.com/v1/users/login/`.
 
-Our API request functions live in `workshop/api.js`a different file to keep the code organised, so you'll need to look in there.
+Our API request functions live in `workshop/api.js` to keep the code organised, so you'll need to look in there.
 
-### Challenge 1
+### Challenge 1
 
 1. Edit the `login` function in `api.js` to:
    - submit the user details
@@ -98,15 +98,12 @@ The easiest way to persist information across page loads is [`window.localStorag
 
 ```js
 onsubmit: (event) => {
-  event.preventDefault();
-  const email = event.target.elements.email.value;
-  const password = event.target.elements.password.value;
+  // ...
   login(email, password).then((user) => {
     // save the access token in localStorage so the user stays logged in
     window.localStorage.setItem("dogs-token", user.access_token);
 
     const messageEl = h("span", {}, `Hello ${user.name}`);
-    welcomeEl.innerHTML = ""; // get rid of old children
     welcomeEl.append(messageEl);
     loginFormEl.replaceWith(welcomeEl); // swap out form for message & logout
   });
@@ -119,11 +116,11 @@ Now when you submit the login form you should see "Hello oli" appear on the page
 
 ## Part 3: fetching user details
 
-We now log in, and we're even persisting the token. If you refresh the page you should see the token is still there in localStorage in your dev tools.
+We can now log in, and we're even persisting the token. If you refresh the page you should see the token is still there in localStorage in your dev tools.
 
 Unfortunately we still just see the login form, since we only fetch the user details when the user actively logs in. However the whole point of storing the token was so the user _doesn't_ have to log in every time.
 
-We need to check if there's a token, then fetch the user details from the API using it. The API has a `GET /users/me` endpoint for retrieving the logged in user. We need to send the token in our request's `authorization` header (with "Bearer" appended). The HTTP request should look like this:
+We need to check if there's a stored token, then fetch the user details from the API using that token. The API has a `GET /users/me` endpoint for retrieving the logged in user. We need to send the token in our request's `authorization` header (with "Bearer" appended). The HTTP request should look like this:
 
 ```
 GET https://dogs-rest.herokuapp.com/v1/users/me/
@@ -132,7 +129,7 @@ content-type: application/json
 authorization: Bearer eyJHGB...
 ```
 
-Once we have the user we can update the page to show the "logged in" welcome message again.
+Once we have the user response we can update the page to show the "logged in" welcome message again.
 
 ### Challenge 3
 
@@ -140,7 +137,7 @@ Once we have the user we can update the page to show the "logged in" welcome mes
    - it should take the `token` as an argument
    - then fetch the logged in user from `/users/me`
    - with the token in the authorization header of the request
-1. When the page loads get the token from localStorage
+1. In `app.js` get the token from localStorage
 1. If there is a token use `getUser` to fetch the user details
 1. When you receive the user response update the page with the welcome message (just like after logging in)
 
@@ -168,7 +165,6 @@ const token = window.localStorage.getItem("dogs-token");
 if (token) {
   getUser(token).then((user) => {
     const messageEl = h("span", {}, `Hello ${user.name}`);
-    welcomeEl.innerHTML = "";
     welcomeEl.append(messageEl);
     loginFormEl.replaceWith(welcomeEl);
   });
@@ -181,7 +177,7 @@ Now when you refresh the page (and have previously logged in) it should fetch yo
 
 ## Part 4: logging out
 
-Authenticating with tokens is _stateless_. This means we don't store anything about who is logged in or where in our database. All our server knows is whether the token is receives is valid and has not expired.
+Authenticating with tokens is _stateless_. This means we don't store anything about who is logged in or where in our database. All our server knows is whether the token it receives is valid and has not expired.
 
 So there's no way to stop a token being valid once it's been issued. The _server_ can't log people out—all we can do is remove the token on the client so the UI forces the user to type their password in again.
 
@@ -200,6 +196,7 @@ So there's no way to stop a token being valid once it's been issued. The _server
 if (token) {
   getUser(token).then((user) => {
     // ...
+    welcomeEl.innerHTML = ""; // clear old message so we don't get duplicates
     welcomeEl.append(messageEl, logoutEl);
     // ...
   }
@@ -209,6 +206,7 @@ function LoginForm() {
   // ...
   onsubmit: (event) => {
     // ...
+    welcomeEl.innerHTML = ""; // clear old message so we don't get duplicates
     welcomeEl.append(messageEl, logoutEl);
     // ...
   }
