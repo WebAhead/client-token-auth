@@ -232,3 +232,48 @@ function LogoutButton() {
 </details>
 
 Now clicking the logout button should remove the token from localStorage and show the form again. If you refresh the page you should only see the form—you'll have to enter your password again to log in.
+
+## Stretch goal: `fetch` helper
+
+Our `api.js` file has a lot of repeated logic that we have to do for every fetch request. We always want to:
+
+1. Check if the response is okay
+1. Throw an error with a status property if not
+1. Extract the JSON response body and return it
+
+Write a function called `request` that takes the same arguments as `fetch` (the URL and options object). It should call fetch with those arguments, then check the response, throw an error if necessary, and finally return the JSON body.
+
+Use this function to reduce the repetition in your API functions.
+
+<details>
+<summary>Solution</summary>
+
+```js
+function request(url, options) {
+  return fetch(url, options).then((response) => {
+    if (!response.ok) {
+      const error = new Error("HTTP Error");
+      error.status = response.status;
+      throw error;
+    } else {
+      return response.json();
+    }
+  });
+}
+
+export function login(email, password) {
+  return request("https://dogs-rest.herokuapp.com/v1/users/login/", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+    headers: { "content-type": "application/json" },
+  });
+}
+
+export function getUser(token) {
+  return request("https://dogs-rest.herokuapp.com/v1/users/me/", {
+    headers: { authorization: `Bearer ${token}` },
+  });
+}
+```
+
+</details>
