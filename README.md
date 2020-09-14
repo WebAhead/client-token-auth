@@ -1,6 +1,6 @@
 # Client token authentication
 
-Learn how to authenticate with an API, keep users logged in, and make authenticated requests using client-side JavaScript.
+Learn how to authenticate with an API, keep users logged in, and make authenticated requests using client-side JavaScript / React.
 
 ## Why APIs use token-based authentication
 
@@ -13,16 +13,17 @@ Token-based auth works anywhere. The server provides a token when a user logs in
 ## Workshop setup
 
 1. Clone this repo
+1. `cd workshop`
 1. `npm install`
-1. `npm run dev`
+1. `npm start`
 
-Open http://localhost:8080 in your browser and you should see a form for logging in with an email and password. Open `workshop/app.js` and you can see the JavaScript that renders this form.
+Open http://localhost:3000 in your browser and you should see a form for logging in with an email and password. Open `workshop/src/App.js` and you can see the JavaScript that renders this form.
 
 ## Part 1: logging in
 
 To log in we must send a `POST` request containing the user's email and password to our API server's login endpoint. The URL is `https://dogs-rest.herokuapp.com/v1/users/login/`.
 
-Our API request functions live in `workshop/api.js` to keep the code organised, so you'll need to look in there.
+Our API request functions live in `workshop/utils/api.js` to keep the code organised, so you'll need to look in there.
 
 ### Challenge 1
 
@@ -30,7 +31,7 @@ Our API request functions live in `workshop/api.js` to keep the code organised, 
    - submit the user details
    - remember to tell the server the content-type you're sending is JSON
    - log the JSON response to the console
-1. Import this function in `app.js`
+1. Import this function in `App.js`
 1. Use it in the form's submit handler
 
 You can test this using `oli@o.com` as the email and `123` as the password. Fill out the form, submit it and you should see a user object logged in the console.
@@ -49,10 +50,10 @@ You can test this using `oli@o.com` as the email and `123` as the password. Fill
 
 ```js
 // api.js
-export function login(email, password) {
+export function login(loginData) {
   return fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(loginData),
     headers: { "content-type": "application/json" },
   }).then((res) => {
     if (!res.ok) {
@@ -67,16 +68,18 @@ export function login(email, password) {
 ```
 
 ```js
-// app.js
-onsubmit: (event) => {
-  event.preventDefault();
-  // get the submitted email/pw values
-  const email = event.target.elements.email.value;
-  const password = event.target.elements.password.value;
-  login(email, password).then((user) => {
-    console.log(user);
-  });
-};
+// App.js
+  const onSubmit = (event) => {
+    event.preventDefault()
+
+    login(loginData)
+      .then((data) => {
+        console.log(data)      
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+  }
 ```
 
 </details>
@@ -91,23 +94,23 @@ The easiest way to persist information across page loads is [`window.localStorag
 
 1. Store the `access_token` property from the user response
 1. Update the page to remove the login form and tell the user they're logged in
-   - Hint: [`element.replaceWith()`](https://developer.mozilla.org/en-US/docs/Web/API/ChildNode/replaceWith) might make this easier
+   - Hint: uncomment the challenge 2 code
 
 <details>
 <summary>Solution</summary>
 
 ```js
-onsubmit: (event) => {
-  // ...
-  login(email, password).then((user) => {
-    // save the access token in localStorage so the user stays logged in
-    window.localStorage.setItem("dogs-token", user.access_token);
+  const onSubmit = (event) => {
+    event.preventDefault()
 
-    const messageEl = h("span", {}, `Hello ${user.name}`);
-    welcomeEl.append(messageEl);
-    loginFormEl.replaceWith(welcomeEl); // swap out form for message & logout
-  });
-};
+    login(loginData).then((data) => {
+
+      window.localStorage.setItem('access_token', data.access_token)
+
+      setUser(data)
+      setIsLoggedIn(true)
+    })
+  } 
 ```
 
 </details>
@@ -161,14 +164,20 @@ export function getUser(token) {
 ```
 
 ```js
-const token = window.localStorage.getItem("dogs-token");
-if (token) {
-  getUser(token).then((user) => {
-    const messageEl = h("span", {}, `Hello ${user.name}`);
-    welcomeEl.append(messageEl);
-    loginFormEl.replaceWith(welcomeEl);
-  });
-}
+  useEffect(() => {
+    const token = window.localStorage.getItem('access_token')
+
+    if (token) {
+      getUser(token)
+        .then((data) => {
+          setUser(data)
+          setIsLoggedIn(true)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    }
+  }, [])
 ```
 
 </details>
@@ -183,47 +192,29 @@ So there's no way to stop a token being valid once it's been issued. The _server
 
 ### Challenge 4
 
-1. Add a click handler to the `LogoutButton` at the bottom of the file
+1. Add a click handler to the Log out button
 1. It should remove the token from localStorage and show the login form again
-1. Add this button to the welcome message
 
 <details>
 <summary>Solution</summary>
 
 ```js
-// ...
 
-if (token) {
-  getUser(token).then((user) => {
-    // ...
-    welcomeEl.innerHTML = ""; // clear old message so we don't get duplicates
-    welcomeEl.append(messageEl, logoutEl);
-    // ...
+  const logout = () => {
+    localStorage.removeItem('access_token')
+
+    setUser({})
+    setIsLoggedIn(false)
   }
-}
 
-function LoginForm() {
-  // ...
-  onsubmit: (event) => {
-    // ...
-    welcomeEl.innerHTML = ""; // clear old message so we don't get duplicates
-    welcomeEl.append(messageEl, logoutEl);
-    // ...
+  if (isLoggedIn) {
+    return (
+      <div>
+        <h1>Hello {user.name}</h1>
+        <button onClick={logout}>Log out</button>
+      </div>
+    )
   }
-}
-
-function LogoutButton() {
-  return h(
-    "button",
-    {
-      onclick: () => {
-        window.localStorage.removeItem("dogs-token");
-        welcomeEl.replaceWith(loginFormEl);
-      },
-    },
-    "Log out"
-  );
-}
 
 ```
 
@@ -259,10 +250,10 @@ function request(url, options) {
   });
 }
 
-export function login(email, password) {
+export function login(loginData) {
   return request("https://dogs-rest.herokuapp.com/v1/users/login/", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(loginData),
     headers: { "content-type": "application/json" },
   });
 }

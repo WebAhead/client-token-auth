@@ -10,10 +10,10 @@ function request(url, options) {
   });
 }
 
-export function login(email, password) {
+export function login(loginData) {
   return request("https://dogs-rest.herokuapp.com/v1/users/login/", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(loginData),
     headers: { "content-type": "application/json" },
   });
 }
