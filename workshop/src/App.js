@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
-import { login, getUser } from './utils/api'
+import React, { useState, useEffect } from 'react';
+
 function App() {
 
   const [loginData, setLoginData] = useState({
@@ -8,55 +7,30 @@ function App() {
     password: ''
   })
   // challenge 2 only - uncomment
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [user, setUser] = useState({})
+  // const [isLoggedIn, setIsLoggedIn] = useState(false)
+  // const [user, setUser] = useState({})
 
   const onChange = (stateKey) => ({ target }) => setLoginData({ ...loginData, [stateKey]: target.value })
 
   const onSubmit = (event) => {
     event.preventDefault()
-
-    login(loginData).then((data) => {
-
-      localStorage.setItem('access_token', data.access_token)
-
-      setUser(data)
-      setIsLoggedIn(true)
-    })
   }
 
   // challenge 3 only - uncomment
-  useEffect(() => {
-    const token = window.localStorage.getItem('access_token')
+  // useEffect(() => {
 
-    if (token) {
-      getUser(token)
-        .then((data) => {
-          setUser(data)
-          setIsLoggedIn(true)
-        })
-        .catch((error) => {
-          console.log(error)
-        })
-    }
-  }, [])
+  // }, [])
 
-  const logout = () => {
-    localStorage.removeItem('access_token')
-
-    setUser({})
-    setIsLoggedIn(false)
-  }
 
   // challenge 2 only - uncomment
-  if (isLoggedIn) {
-    return (
-      <div>
-        <h1>Hello {user.name}</h1>
-        <button onClick={logout}>Log out</button>
-      </div>
-    )
-  }
+  // if (isLoggedIn) {
+  //   return (
+  //     <div>
+  //       <h1>Hello {user.name}</h1>
+  //       <button>Log out</button>
+  //     </div>
+  //   )
+  // }
 
   return (
     <form onSubmit={onSubmit}>
